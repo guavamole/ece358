@@ -10,10 +10,12 @@ struct Packet{
 	float arrival;
 	float departure;
 	float size;
+	bool dropped;
 
 	Packet(float a, float s) {
 		arrival = a;
 		size = s;
+		dropped = false;
 	}
 };
 
@@ -38,6 +40,8 @@ int main() {
 	for(float p = 0.25; p < 1; p+=0.1) {
 		//Uncomment for question 4 data
 		//float p = 1.2;
+		int maxBuffer = 20;
+		int bufferSize = 0;
 
 		//Calculate arrival rate based on p
 		float arrivalRate = p * serviceRate / averagePacketSize;
@@ -64,11 +68,27 @@ int main() {
 		packets[0].departure = packets[0].arrival + packets[0].size/serviceRate;
 
 		//Calculate departure times for all other packets based on previous packet
+
+		//j points to the next packet that will be moved out of the buffer
+		int j = 0;
 		for(int i = 1; i < arrivalRate; i++) {
 			if(packets[i-1].departure > packets[i].arrival) {
-				packets[i].departure = packets[i-1].departure + packets[i].size/serviceRate;
+				while(packets[j].departure < packets[i.arrival]) {
+					buffer--;
+					while(packets[j].dropped) j++
+				}
+
+				if(buffer < maxBuffer) {
+					packets[i].departure = packets[i-1].departure + packets[i].size/serviceRate;
+					buffer++;
+				} else {
+					packets[i].departure = packets[i-1].departure;
+					packets[i].dropped = true;
+				}
 			} else {
 				packets[i].departure = packets[i].arrival + packets[i].size/serviceRate;
+				buffer = 1;
+				j = i;
 			}
 		}
 
