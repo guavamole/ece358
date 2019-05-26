@@ -34,44 +34,49 @@ int main() {
 	srand(time(0));
 	float averagePacketSize = 2000;
 	float serviceRate = 1048576;
-	int maxBuffer = 10;
-	cout << "p,usage rate, idle rate, packet loss" << endl;
+
+	float simTime = 1000.0;
+	int maxBuffer = 50;
+	cout << "p,E[N],Packet Loss" << endl;
+
 	//Generate data for question 3
-	for(float p = 0.5; p < 1.5; p+=0.1) {
+	for(float p = 0.5; p < 1.5; p += 0.1) {
+		//float p = 0.9;
 		//Uncomment for question 4 data
 		
-
 		//Calculate arrival rate based on p
 		float arrivalRate = p * serviceRate / averagePacketSize;
 
 		//Generate random packets
 		vector<Packet> packets;
-		for(int i = 0; i < arrivalRate; i++) {
-			packets.push_back(Packet(expRand(arrivalRate), expRand(1/averagePacketSize)));
-		}
+		int numPackets = 0;
+		float curTime = 0;
+		do {
+			packets.push_back(Packet(curTime, expRand(1/averagePacketSize)));
+			curTime += expRand(arrivalRate);
+			numPackets++;
+		} while(curTime < simTime);
 
-		//Generate observers
+		int numObservers = 0;
+		//Generate random observers
 		vector<float> observers;
-		for(int i = 0; i < arrivalRate * 5; i++) {
-			observers.push_back(expRand(arrivalRate*5));
-		}
+		curTime = 0;
+		do {
+			observers.push_back(curTime);
+			curTime += expRand(arrivalRate * 5);
+			numObservers++;
+		} while(curTime < simTime);
 
-		//Sort packets by arrival times
-		sort(packets.begin(), packets.end(), compPacket);
-
-		//Sort observers by times
-		sort(observers.begin(), observers.end());
-
+		//Holds number of dropped packets
+		int numDropped = 0;
 		//Calculate arrival and departure time for first packet
 		packets[0].departure = packets[0].arrival + packets[0].size/serviceRate;
 
 		//Calculate departure times for all other packets based on previous packet
-
 		//j points to the next packet that will be moved out of the buffer
 		int buffer = 1;
 		int j = 0;
-		for(int i = 1; i < arrivalRate; i++) {
-
+		for(int i = 1; i < numPackets; i++) {
 			if(packets[i-1].departure > packets[i].arrival) {
 				while(packets[j].departure < packets[i].arrival && j < i) {
 					buffer--;
@@ -83,8 +88,11 @@ int main() {
 					packets[i].departure = packets[i-1].departure + packets[i].size/serviceRate;
 					buffer++;
 				} else {
+					//We store departure time of previous packet (so next non-dropped packet can use it)
 					packets[i].departure = packets[i-1].departure;
+					//Packet is dropped. 
 					packets[i].dropped = true;
+					numDropped++;
 				}
 			} else {
 				packets[i].departure = packets[i].arrival + packets[i].size/serviceRate;
@@ -94,7 +102,7 @@ int main() {
 		}
 
 		////Print out arrival times
-		//for(int i = 0; i < arrivalRate; i++) {
+		//for(int i = 0; i < numPackets; i++) {
 		//	cout << "Arrival," << packets[i].arrival;
 		//	if (packets[i].dropped) {
 		//		cout << ", dropped" << endl;
@@ -106,24 +114,37 @@ int main() {
 		//Calculate observer values
 		int na = 0;
 		int nd = 0;
+
+		//Holds number of dropped packets inbetween na and nd
 		int dropped = 0;
 		double totalUsage = 0;
 		double totalIdle = 0;
-		for(int i = 0; i < arrivalRate * 5; i++) {
+		for(int i = 0; i < numObservers; i++) {
 			float obsTime = observers[i];
-			while(na < arrivalRate) {
+
+			while(na < numPackets) {
 				if(packets[na].arrival > obsTime) break;
+				if(packets[na].dropped) dropped++;
 				na++;
 			}
 
-			while(nd + dropped < arrivalRate) {
+			while(nd < numPackets) {
+				
 				if(packets[nd].departure > obsTime) break;
-				if(packets[nd].dropped) {
-					dropped++;
-				} else {
-					nd++;
-				}
+				if(packets[nd].dropped) dropped--;
+				nd++;
 			}
+
+			//cout << "na: " << na << " nd: " << nd << " dropped " << dropped << endl;
+
+			// while(nd + dropped < numPackets) {
+			// 	if(packets[nd].departure > obsTime) break;
+			// 	if(packets[nd].dropped) {
+			// 		dropped++;
+			// 	} else {
+			// 		nd++;
+			// 	}
+			// }
 
 			if(na == (nd + dropped)) {
 				totalIdle++;
@@ -134,11 +155,10 @@ int main() {
 			//Prints out observer values
 			//cout << "Observer," << obsTime << "," << i << "," << na << "," << nd << endl;
 		}
-		double usageRate = totalUsage / (arrivalRate * 5);
-		double idleRate = totalIdle / (arrivalRate * 5);
-		cout << dropped << endl;
-		double packetLoss = (1.0 * dropped) / arrivalRate;
-		cout << p << "," << usageRate << "," << idleRate << "," << packetLoss << endl;
+		double usageRate = totalUsage / (numObservers);
+		double idleRate = totalIdle / (numObservers);
+		double packetLoss = (1.0 * numDropped) / numPackets;
+		cout << p << "," << usageRate << "," << packetLoss << endl;
 	}
 	return 0;
 };

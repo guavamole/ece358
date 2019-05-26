@@ -34,6 +34,8 @@ int main() {
 	float serviceRate = 1048576;
 	cout << "p,usage rate, idle rate" << endl;
 
+	float simTime = 1000.0;
+
 	//Generate data for question 3
 	for(float p = 0.25; p < 1; p+=0.1) {
 		//Uncomment for question 4 data
@@ -44,27 +46,30 @@ int main() {
 
 		//Generate random packets
 		vector<Packet> packets;
-		for(int i = 0; i < arrivalRate; i++) {
-			packets.push_back(Packet(expRand(arrivalRate), expRand(1/averagePacketSize)));
-		}
+		int numPackets = 0;
+		float curTime = 0;
+		do {
+			packets.push_back(Packet(curTime, expRand(1/averagePacketSize)));
+			curTime += expRand(arrivalRate);
+			numPackets++;
+		} while(curTime < simTime);
 
-		//Generate observers
+		int numObservers = 0;
+
+		//Generate random observers
 		vector<float> observers;
-		for(int i = 0; i < arrivalRate * 5; i++) {
-			observers.push_back(expRand(arrivalRate*5));
-		}
-
-		//Sort packets by arrival times
-		sort(packets.begin(), packets.end(), compPacket);
-
-		//Sort observers by times
-		sort(observers.begin(), observers.end());
+		curTime = 0;
+		do {
+			observers.push_back(curTime);
+			curTime += expRand(arrivalRate * 5);
+			numObservers++;
+		} while(curTime < simTime);
 
 		//Calculate arrival and departure time for first packet
 		packets[0].departure = packets[0].arrival + packets[0].size/serviceRate;
 
 		//Calculate departure times for all other packets based on previous packet
-		for(int i = 1; i < arrivalRate; i++) {
+		for(int i = 1; i < numPackets; i++) {
 			if(packets[i-1].departure > packets[i].arrival) {
 				packets[i].departure = packets[i-1].departure + packets[i].size/serviceRate;
 			} else {
@@ -87,14 +92,14 @@ int main() {
 		int nd = 0;
 		double totalUsage = 0;
 		double totalIdle = 0;
-		for(int i = 0; i < arrivalRate * 5; i++) {
+		for(int i = 0; i < numObservers; i++) {
 			float obsTime = observers[i];
-			while(na < arrivalRate) {
+			while(na < numPackets) {
 				if(packets[na].arrival > obsTime) break;
 				na++;
 			}
 
-			while(nd < arrivalRate) {
+			while(nd < numPackets) {
 				if(packets[nd].departure > obsTime) break;
 				nd++;
 			}
@@ -108,8 +113,8 @@ int main() {
 			//Prints out observer values
 			//cout << "Observer," << obsTime << "," << i << "," << na << "," << nd << endl;
 		}
-		double usageRate = totalUsage / (arrivalRate * 5);
-		double idleRate = totalIdle / (arrivalRate * 5);
+		double usageRate = totalUsage / numObservers;
+		double idleRate = totalIdle / numObservers;
 
 		cout << p << "," << usageRate << "," << idleRate << endl;
 	}
