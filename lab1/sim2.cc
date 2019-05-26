@@ -39,10 +39,8 @@ int main() {
 	int maxBuffer = 50;
 	cout << "p,E[N],Packet Loss" << endl;
 
-	//Generate data for question 3
+	//Generate data for question 6
 	for(float p = 0.5; p < 1.5; p += 0.1) {
-		//float p = 0.9;
-		//Uncomment for question 4 data
 		
 		//Calculate arrival rate based on p
 		float arrivalRate = p * serviceRate / averagePacketSize;
@@ -78,6 +76,7 @@ int main() {
 		int j = 0;
 		for(int i = 1; i < numPackets; i++) {
 			if(packets[i-1].departure > packets[i].arrival) {
+				// Move j up to point to the packet at the front of the buffer to calculate buffer size
 				while(packets[j].departure < packets[i].arrival && j < i) {
 					buffer--;
 					while(packets[j].dropped && j < i) j++;
