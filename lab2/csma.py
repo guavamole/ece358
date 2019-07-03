@@ -77,7 +77,7 @@ def detect_collision(node):
 
 def update_collision(colliding_nodes, original_node):
 	global transmitted_packet_count
-	transmitted_packet_count += 1
+	transmitted_packet_count += (len(colliding_nodes) + 1)
 	for node in colliding_nodes:
 		node.collision_count += 1
 		if node.collision_count == 10:
