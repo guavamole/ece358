@@ -15,14 +15,17 @@ def generate_packets(rate):
 		yield current_time
 
 
+# Params
 Tsim = 10
-node_count = 60  # [20,40,60,80,100]
-arrival_rate = 20  # [7,10,20]
+node_count = 100  # [20,40,60,80,100]
+arrival_rate = 12  # [7,10,20]
+print node_count
+print arrival_rate
 channel_speed = 10.0 ** 6
 packet_length = 1500
 adjacent_node_distance = 10
 propagation_speed = 2.0 * (10 ** 8)
-Tp = 512.0 / channel_speed
+Tp = 512 / channel_speed
 transmission_delay = packet_length / channel_speed
 
 big_num = 9999999999999999
@@ -33,6 +36,7 @@ class Node:
 		self.id = position
 		self.position = position * adjacent_node_distance
 		self.collision_count = 0
+		self.busy_count = 0
 		self.buffer = deque()
 
 		gen = generate_packets(arrival_rate)
@@ -54,6 +58,7 @@ class Node:
 nodes = [Node(i) for i in range(node_count)]
 transmitted_packet_count = 0
 successful_transmitted_packet_count = 0
+busydrop = 0
 
 def next_node():
 	node = nodes[0]
@@ -81,6 +86,7 @@ def update_collision(colliding_nodes, original_node):
 	max_node_time = -1
 	for node in colliding_nodes:
 		node.collision_count += 1
+		node.busy_count = 0
 		if node.collision_count == 10:
 			node.buffer.popleft()
 			node.collision_count = 0
@@ -88,7 +94,7 @@ def update_collision(colliding_nodes, original_node):
 			propagation_delay = abs(original_node.position - node.position) / propagation_speed
 			node_time = node.head() + propagation_delay
 			max_node_time = max(max_node_time, node_time)
-			wait_time = random.randint(0, 2 ** (node.collision_count - 1)) * Tp
+			wait_time = random.randint(0, (2 ** node.busy_count) - 1) * Tp
 			new_time = node_time + wait_time
 			for idx in range(len(node.buffer)):
 				if node.buffer[idx] > new_time:
@@ -96,15 +102,18 @@ def update_collision(colliding_nodes, original_node):
 				node.buffer[idx] = new_time
 
 	return max_node_time
+
+
 last_t = 0
 
 while True:
 	node = next_node()
 	if len(node.buffer) == 0 or last_t > Tsim:
 		break
-	last_t = node.head() + transmission_delay
+	last_t = node.head()
 
 	collisions = detect_collision(node)
+
 	if len(collisions) == 0:
 		successful_transmitted_packet_count += 1
 		transmitted_packet_count += 1
@@ -126,14 +135,12 @@ while True:
 			for idx in range(len(n.buffer)):
 				if n.buffer[idx] >= max_node_time:
 					break
-
 				n.buffer[idx] = max_node_time
 
 print successful_transmitted_packet_count
 print transmitted_packet_count
 print 1.0 * successful_transmitted_packet_count / transmitted_packet_count
 print (successful_transmitted_packet_count * packet_length) / (last_t * channel_speed)
-
 
 
 

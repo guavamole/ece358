@@ -94,7 +94,7 @@ def update_collision(colliding_nodes, original_node):
 			propagation_delay = abs(original_node.position - node.position) / propagation_speed
 			node_time = node.head() + propagation_delay
 			max_node_time = max(max_node_time, node_time)
-			wait_time = random.randint(0, 2 ** (node.collision_count - 1)) * Tp
+			wait_time = random.randint(0, (2 ** node.busy_count) - 1) * Tp
 			new_time = node_time + wait_time
 			for idx in range(len(node.buffer)):
 				if node.buffer[idx] > new_time:
@@ -126,7 +126,7 @@ def update_busy(busy_nodes, original_node):
 		else:
 			propagation_delay = abs(original_node.position - node.position) / propagation_speed
 			node_time = node.head() + propagation_delay
-			wait_time = random.randint(0, 2 ** (node.collision_count - 1)) * Tp
+			wait_time = random.randint(0, (2 ** node.busy_count) - 1) * Tp
 			new_time = node_time + wait_time
 			for idx in range(len(node.buffer)):
 				if node.buffer[idx] > new_time:
@@ -161,7 +161,6 @@ while True:
 			for idx in range(len(n.buffer)):
 				if n.buffer[idx] >= departure_time:
 					break
-
 				n.buffer[idx] = departure_time
 	else:
 		max_node_time = update_collision(collisions, node)
@@ -169,7 +168,6 @@ while True:
 			for idx in range(len(n.buffer)):
 				if n.buffer[idx] >= max_node_time:
 					break
-
 				n.buffer[idx] = max_node_time
 
 print successful_transmitted_packet_count
