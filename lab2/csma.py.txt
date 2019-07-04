@@ -4,10 +4,12 @@ import math
 import itertools
 
 
+# Generates a distribute given a rate
 def poisson(rate):
 	return -1 * (1.0 / rate) * math.log(1 - random.random())
 
 
+# Generates a series of packets
 def generate_packets(rate):
 	current_time = 0
 	while True:
@@ -16,9 +18,9 @@ def generate_packets(rate):
 
 
 # Params
-Tsim = 10
+Tsim = 20
 node_count = 100  # [20,40,60,80,100]
-arrival_rate = 12  # [7,10,20]
+arrival_rate = 7  # [7,10,20]
 print node_count
 print arrival_rate
 channel_speed = 10.0 ** 6
@@ -30,6 +32,7 @@ transmission_delay = packet_length / channel_speed
 
 big_num = 9999999999999999
 
+# Node class is a wrapper for the counters and buffers
 class Node:
 
 	def __init__(self, position):
@@ -45,21 +48,18 @@ class Node:
 			if self.buffer[-1] > Tsim:
 				break
 
+	# Gets the front of the buffer
 	def head(self):
 		if len(self.buffer) == 0:
 			return big_num
 		return self.buffer[0]
 
-	# Return true is channel is open
-	def sense(self):
-		pass
-
-
+# global nodes and counters
 nodes = [Node(i) for i in range(node_count)]
 transmitted_packet_count = 0
 successful_transmitted_packet_count = 0
-busydrop = 0
 
+# Gets the next node to process
 def next_node():
 	node = nodes[0]
 	for n in nodes:
@@ -67,6 +67,7 @@ def next_node():
 			node = n
 	return node
 
+# Checks for collisions for a given node
 def detect_collision(node):
 	collisions = []
 
@@ -79,6 +80,7 @@ def detect_collision(node):
 
 	return collisions
 
+# Updates nodes that collided with a given node
 def update_collision(colliding_nodes, original_node):
 	global transmitted_packet_count
 	transmitted_packet_count += (len(colliding_nodes) + 1)
@@ -103,10 +105,12 @@ def update_collision(colliding_nodes, original_node):
 
 	return max_node_time
 
-
+# time that last node was transmitted
 last_t = 0
 
+# Event loop
 while True:
+	# Grab next node
 	node = next_node()
 	if len(node.buffer) == 0 or last_t > Tsim:
 		break
@@ -114,13 +118,14 @@ while True:
 
 	collisions = detect_collision(node)
 
+	# Successful transmittion
 	if len(collisions) == 0:
 		successful_transmitted_packet_count += 1
 		transmitted_packet_count += 1
 		arrival_time = node.head()
 		node.collision_count = 0
 		node.buffer.popleft()
-
+		# Push packets forward in arrival time
 		for n in nodes:
 			propagation_delay = abs(node.position - n.position) / propagation_speed
 			departure_time = arrival_time + propagation_delay + transmission_delay
@@ -129,6 +134,7 @@ while True:
 				if n.buffer[idx] >= departure_time:
 					break
 				n.buffer[idx] = departure_time
+	# Unsuccessful transmittion
 	else:
 		max_node_time = update_collision(collisions, node)
 		for n in nodes:
@@ -137,6 +143,7 @@ while True:
 					break
 				n.buffer[idx] = max_node_time
 
+# Output
 print successful_transmitted_packet_count
 print transmitted_packet_count
 print 1.0 * successful_transmitted_packet_count / transmitted_packet_count

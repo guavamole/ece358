@@ -1,0 +1,5 @@
+csma:
+	python csma.py
+
+csmanp:
+	python csmanp.py
